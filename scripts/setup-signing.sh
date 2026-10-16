@@ -8,7 +8,7 @@ NAME="DesktopLyrics Local Signing"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
 if security find-identity -v -p codesigning | grep -q "$NAME"; then
-    echo "证书“$NAME”已经存在，不用再创建。"
+    echo "证书“${NAME}”已经存在，不用再创建。"
     exit 0
 fi
 

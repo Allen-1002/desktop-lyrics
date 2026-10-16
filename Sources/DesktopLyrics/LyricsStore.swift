@@ -39,7 +39,10 @@ final class LRCLibProvider {
         let candidate = records
             .filter { !($0.syncedLyrics ?? "").isEmpty }
             .min { abs(($0.duration ?? 0) - track.duration) < abs(($1.duration ?? 0) - track.duration) }
-        guard let best = candidate, let duration = best.duration, abs(duration - track.duration) <= 5 else { return nil }
+        guard let best = candidate else { return nil }
+        if track.duration > 0 {
+            guard let duration = best.duration, abs(duration - track.duration) <= 5 else { return nil }
+        }
         return best.syncedLyrics
     }
 
@@ -72,8 +75,8 @@ final class LyricsStore {
             let lines = LRCParser.parse(cached)
             if !lines.isEmpty { return lines }
         }
-        // 中文歌先查 QQ音乐，其他先查 LRCLIB
-        let sources: [(name: String, fetch: (TrackInfo) async -> String?)] = track.looksChinese
+        // QQ音乐里播放的歌和中文歌先查 QQ音乐，其他先查 LRCLIB
+        let sources: [(name: String, fetch: (TrackInfo) async -> String?)] = track.isFromQQMusic || track.looksChinese
             ? [("QQ音乐", qqMusic.fetchSynced), ("LRCLIB", lrclib.fetchSynced)]
             : [("LRCLIB", lrclib.fetchSynced), ("QQ音乐", qqMusic.fetchSynced)]
         for source in sources {

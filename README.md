@@ -2,7 +2,7 @@
 
 在 macOS 菜单栏左侧的空白处显示当前歌曲的歌词，跟随播放进度逐字高亮。不挡任何窗口，鼠标点击会直接穿透。
 
-第一版支持 Apple Music。歌词来自 QQ音乐和 [LRCLIB](https://lrclib.net)：中文歌先查 QQ音乐，其他先查 LRCLIB，查不到再换另一个。QQ音乐、飞牛音乐作为播放来源在后续版本加入。
+支持 Apple Music、QQ音乐，以及其他会出现在控制中心“正在播放”里的播放器（比如浏览器里的飞牛音乐网页）。歌词来自 QQ音乐和 [LRCLIB](https://lrclib.net)：QQ音乐播放的歌和中文歌先查 QQ音乐，其他先查 LRCLIB，查不到再换另一个。
 
 ## 环境要求
 
@@ -57,7 +57,7 @@ open build/DesktopLyrics.app
 
 | 部分 | 做法 |
 |---|---|
-| 播放信息 | 每 0.5 秒用 AppleScript 读取“音乐”App 的歌曲和播放位置；切歌、暂停时通过系统通知立即刷新 |
+| 播放信息 | Apple Music：每 0.5 秒用 AppleScript 读取歌曲和播放位置，切歌、暂停时通过系统通知立即刷新。其他播放器：读取系统“正在播放”信息。macOS 15.4 起普通应用读不到这份信息，所以由系统自带的 `/usr/bin/perl` 加载 `libNowPlayingHelper.dylib` 来读（做法参考 [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter)） |
 | 同步 | 两次读取之间在本地推算播放时间，偏差超过 0.25 秒才校准，画面每秒刷新 30 次 |
 | 歌词 | QQ音乐：按“歌名 + 歌手”搜索，挑歌手对得上、时长相差 4 秒内的那首；LRCLIB：先精确查询，没有再模糊搜索。结果缓存在 `~/Library/Application Support/DesktopLyrics/Lyrics` |
 | 逐字高亮 | LRC 只有每行的开始时间，按字数估算演唱时长来推进高亮 |
@@ -65,13 +65,13 @@ open build/DesktopLyrics.app
 
 ## 已知限制
 
-- 只支持 Apple Music；QQ音乐、飞牛音乐见后续计划
+- 读取系统“正在播放”信息依赖私有接口，以后的 macOS 更新可能让它失效，届时只剩 Apple Music 可用
+- 浏览器里放视频时也会尝试找歌词，找不到就不显示
 - QQ音乐歌词接口不是官方开放的，以后可能失效
 - 菜单特别多的应用里，左侧空间不够时歌词会被截断或隐藏
 - 多显示器时只显示在主显示器的菜单栏上
 
 ## 后续计划
 
-1. 接入系统“正在播放”信息，支持 QQ音乐和浏览器里的飞牛音乐
-2. 飞牛 NAS 歌词接口
-3. 字体、颜色、位置等设置界面
+1. 飞牛 NAS 歌词接口
+2. 歌词翻译行

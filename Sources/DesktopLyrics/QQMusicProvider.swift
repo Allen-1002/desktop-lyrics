@@ -72,7 +72,7 @@ final class QQMusicProvider {
             }
         }
         return candidates
-            .filter { abs($0.duration - track.duration) <= 4 }
+            .filter { track.duration <= 0 || abs($0.duration - track.duration) <= 4 }
             .min { a, b in
                 let am = artistMatches(a), bm = artistMatches(b)
                 if am != bm { return am }

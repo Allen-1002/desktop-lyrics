@@ -5,8 +5,12 @@ struct TrackInfo: Equatable {
     let title: String
     let artist: String
     let album: String
-    /// 秒
+    /// 秒；有些播放器不提供时长，这时为 0
     let duration: Double
+    /// 正在播放这首歌的应用
+    let sourceBundleID: String
+
+    var isFromQQMusic: Bool { sourceBundleID == SourceApps.qqMusic }
 
     /// 用于缓存和每首歌的偏移量。
     var key: String { "\(artist)\u{1F}\(title)\u{1F}\(Int(duration.rounded()))" }
@@ -28,6 +32,14 @@ struct TrackInfo: Equatable {
         t = t.trimmingCharacters(in: .whitespaces)
         return t.isEmpty ? title : t
     }
+}
+
+enum SourceApps {
+    static let appleMusic = "com.apple.Music"
+    static let qqMusic = "com.tencent.QQMusicMac"
+
+    /// 只为这些应用显示“歌名 - 歌手”占位；其他来源（比如浏览器里的视频）没找到歌词时就不显示。
+    static let showsTitleWithoutLyrics: Set<String> = [appleMusic, qqMusic]
 }
 
 /// 播放器某一刻的状态。

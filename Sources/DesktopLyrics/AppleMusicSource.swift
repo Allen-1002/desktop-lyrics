@@ -2,7 +2,7 @@ import AppKit
 
 /// 通过 AppleScript 读取“音乐”App 的当前歌曲和播放进度。
 final class AppleMusicSource {
-    static let bundleID = "com.apple.Music"
+    static let bundleID = SourceApps.appleMusic
     private static let separator = "\u{1F}"
 
     private let script = NSAppleScript(source: """
@@ -38,7 +38,8 @@ final class AppleMusicSource {
             title: parts[1],
             artist: parts[2],
             album: parts[3],
-            duration: Self.number(parts[4])
+            duration: Self.number(parts[4]),
+            sourceBundleID: Self.bundleID
         )
         return PlaybackSnapshot(track: track, position: Self.number(parts[5]), isPlaying: parts[0] == "playing")
     }

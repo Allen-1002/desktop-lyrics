@@ -10,7 +10,13 @@
 - 苹果命令行工具（不需要 Xcode）：在终端运行 `xcode-select --install`
 - 建议在“系统设置 > 控制中心 > 自动隐藏和显示菜单栏”里选“永不”，这样全屏应用里也能看到歌词
 
-## 安装
+## 下载
+
+到 [Releases](https://github.com/Allen-1002/desktop-lyrics/releases) 下载最新的 `DesktopLyrics-*.dmg`，打开后把“桌面歌词”拖进“应用程序”。应用没有经过 Apple 公证，第一次打开会被拦下，到 系统设置 › 隐私与安全性 点“仍要打开”即可。
+
+发布新版本：改 `Resources/Info.plist` 里的版本号，然后推送同名标签（例如 `git tag v0.2.0 && git push origin v0.2.0`），GitHub 会自动编译并发布 dmg。
+
+## 从源码安装
 
 ```bash
 git clone https://github.com/Allen-1002/desktop-lyrics.git

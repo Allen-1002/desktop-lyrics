@@ -1,0 +1,45 @@
+# 推送 v* 标签（例如 v0.1.0）时，在 GitHub 的 Mac 上编译、封装 dmg，并发布到 Releases
+name: 发布 dmg
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 编译并封装 dmg
+        run: ./scripts/make-dmg.sh
+
+      - name: 发布到 Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${TAG}" != v* ]]; then TAG="v${VERSION}"; fi
+          ASSET="build/DesktopLyrics-${VERSION}.dmg"
+          cp "build/桌面歌词-${VERSION}.dmg" "${ASSET}"
+          cat > notes.md <<'NOTES'
+          下载 `DesktopLyrics-*.dmg`，打开后把“桌面歌词”拖进“应用程序”。适用于 Apple 芯片的 Mac，macOS 13 及以上。
+
+          这个应用没有经过 Apple 公证，第一次打开会提示“无法验证开发者”。到 系统设置 › 隐私与安全性，在下方点“仍要打开”；或者在终端运行：
+
+          ```
+          xattr -cr /Applications/桌面歌词.app
+          ```
+
+          之后按提示开启辅助功能权限（让歌词紧跟菜单），以及允许控制“音乐”App。
+          NOTES
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ASSET}" --clobber
+          else
+            gh release create "${TAG}" "${ASSET}" --title "桌面歌词 ${VERSION}" --notes-file notes.md
+          fi

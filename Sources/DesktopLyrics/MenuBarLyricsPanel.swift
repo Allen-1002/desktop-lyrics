@@ -46,6 +46,7 @@ final class MenuBarLyricsPanel: NSPanel {
         let width = endX - startX
 
         isTooNarrow = width < minimumWidth
+        Log.info("歌词区域：x=\(Int(startX)) 宽=\(Int(width))\(menusEndX == nil ? "（未读到菜单宽度）" : "")")
         guard !isTooNarrow else {
             applyAlpha(0)
             return

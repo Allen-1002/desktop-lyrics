@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var timers: [Timer] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Log.info("已启动，辅助功能权限：\(MenuBarLayout.isTrusted ? "已开启" : "未开启")")
         setupStatusItem()
         MenuBarLayout.requestTrustIfNeeded()
         panel.orderFrontRegardless()
@@ -72,6 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         if track != currentTrack {
+            Log.info("正在播放：\(track.title) - \(track.artist)（\(Int(track.duration)) 秒）")
             currentTrack = track
             clock.update(position: snapshot.position, isPlaying: snapshot.isPlaying, force: true)
             loadLyrics(for: track, ignoreCache: false)
@@ -95,9 +97,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let lines = await store.lyrics(for: track, ignoreCache: ignoreCache)
             guard let self, !Task.isCancelled, self.currentTrack == track else { return }
             if let lines {
+                Log.info("找到歌词，共 \(lines.count) 行")
                 self.timeline = LyricsTimeline(lines: lines)
                 self.loadState = .loaded
             } else {
+                Log.info("没有找到带时间轴的歌词")
                 self.loadState = .notFound
             }
         }

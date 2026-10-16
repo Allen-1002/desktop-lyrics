@@ -19,16 +19,21 @@ final class AppleMusicSource {
     func poll() -> PlaybackSnapshot? {
         // 不在运行时直接返回，避免 AppleScript 把“音乐”App 拉起来
         guard !NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).isEmpty else {
+            Log.info("“音乐”App 没有在运行")
             return .stopped
         }
         var error: NSDictionary?
         guard let output = script?.executeAndReturnError(&error).stringValue else {
+            Log.info("读取“音乐”App 失败：\(error ?? [:])")
             return nil
         }
         if output == "stopped" { return .stopped }
 
         let parts = output.components(separatedBy: Self.separator)
-        guard parts.count == 6 else { return nil }
+        guard parts.count == 6 else {
+            Log.info("无法解析“音乐”App 的返回：\(output)")
+            return nil
+        }
         let track = TrackInfo(
             title: parts[1],
             artist: parts[2],

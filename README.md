@@ -26,6 +26,16 @@ open build/DesktopLyrics.app
 
 > 每次重新编译后，系统可能会把它当成新应用，需要重新授权辅助功能（在列表里先删掉旧的再打开）。
 
+## 排查问题
+
+在终端里直接运行可执行文件，可以看到每一步的日志（播放信息、歌词查找结果、显示位置）：
+
+```bash
+./build/DesktopLyrics.app/Contents/MacOS/DesktopLyrics
+```
+
+按 Ctrl+C 退出。
+
 ## 使用
 
 菜单栏右侧会多一个 ♪ 图标，点开可以：

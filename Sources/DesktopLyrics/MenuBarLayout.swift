@@ -6,8 +6,12 @@ import ApplicationServices
 enum MenuBarLayout {
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
-    /// 首次启动时弹出系统的“辅助功能”授权提示。
+    /// 只在第一次启动时弹出系统的“辅助功能”授权提示；之后需要时从菜单里打开设置。
+    /// （从终端启动、或重新编译后，系统可能认为没有权限，不应该每次都弹窗。）
     static func requestTrustIfNeeded() {
+        let key = "didPromptAccessibility"
+        guard !isTrusted, !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
     }

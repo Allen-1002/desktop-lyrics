@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let offsetStep = 0.5
 
     private let music = AppleMusicSource()
+    private let systemNowPlaying = SystemNowPlayingSource()
     private let clock = PlaybackClock()
     private let store = LyricsStore()
     private let panel = MenuBarLyricsPanel()
@@ -31,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.info("已启动，辅助功能权限：\(MenuBarLayout.isTrusted ? "已开启" : "未开启")")
         setupStatusItem()
         MenuBarLayout.requestTrustIfNeeded()
+        systemNowPlaying.start()
         panel.orderFrontRegardless()
 
         // “音乐”App 切歌、播放、暂停时会立即广播，不用等下一次轮询
@@ -54,6 +56,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         relayout()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        systemNowPlaying.stop()
+    }
+
     private func schedule(every interval: TimeInterval, _ selector: Selector) {
         let timer = Timer(timeInterval: interval, target: self, selector: selector, userInfo: nil, repeats: true)
         RunLoop.main.add(timer, forMode: .common)
@@ -62,8 +68,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - 播放状态
 
+    /// Apple Music 用 AppleScript 读（进度最准）；其他播放器（QQ音乐、浏览器等）用系统“正在播放”信息。
+    private func currentSnapshot() -> PlaybackSnapshot? {
+        if let system = systemNowPlaying.current(),
+           system.bundleID != SourceApps.appleMusic,
+           system.snapshot.track != nil {
+            return system.snapshot
+        }
+        return music.poll()
+    }
+
     @objc private func poll() {
-        guard let snapshot = music.poll() else { return }
+        guard let snapshot = currentSnapshot() else { return }
 
         guard let track = snapshot.track else {
             if currentTrack != nil {
@@ -77,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         if track != currentTrack {
-            Log.info("正在播放：\(track.title) - \(track.artist)（\(Int(track.duration)) 秒）")
+            Log.info("正在播放：\(track.title) - \(track.artist)（\(Int(track.duration)) 秒，来自 \(track.sourceBundleID)）")
             currentTrack = track
             clock.update(position: snapshot.position, isPlaying: snapshot.isPlaying, force: true)
             loadLyrics(for: track, ignoreCache: false)
@@ -119,7 +135,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let pausedTooLong = pausedSince.map { CACurrentMediaTime() - $0 > hideAfterPause } ?? false
-        let fallback = "♪ \(track.title) - \(track.artist)"
+        let fallback = SourceApps.showsTitleWithoutLyrics.contains(track.sourceBundleID)
+            ? "♪ \(track.title) - \(track.artist)"
+            : ""
 
         var text = fallback
         var progress = 0.0
@@ -276,7 +294,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 menu.addItem(disabled: String(format: "当前偏移：%@%.1f 秒", value > 0 ? "提前 " : "延后 ", abs(value)))
             }
         } else {
-            menu.addItem(disabled: "Apple Music 没有在播放")
+            menu.addItem(disabled: "没有在播放音乐")
         }
 
         menu.addItem(.separator())

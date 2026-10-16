@@ -11,6 +11,11 @@ struct TrackInfo: Equatable {
     /// 用于缓存和每首歌的偏移量。
     var key: String { "\(artist)\u{1F}\(title)\u{1F}\(Int(duration.rounded()))" }
 
+    /// 歌名或歌手里有汉字。
+    var looksChinese: Bool {
+        (title + artist).unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
+    }
+
     /// 去掉 “(Live)”“- Remastered” 之类的后缀，用于模糊搜索。
     var searchTitle: String {
         var t = title

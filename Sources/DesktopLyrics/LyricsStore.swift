@@ -55,7 +55,8 @@ final class LRCLibProvider {
 
 /// 歌词获取 + 本地缓存（~/Library/Application Support/DesktopLyrics/Lyrics）。
 final class LyricsStore {
-    private let provider = LRCLibProvider()
+    private let lrclib = LRCLibProvider()
+    private let qqMusic = QQMusicProvider()
     private let directory: URL
 
     init() {
@@ -71,11 +72,25 @@ final class LyricsStore {
             let lines = LRCParser.parse(cached)
             if !lines.isEmpty { return lines }
         }
-        guard let lrc = await provider.fetchSynced(for: track) else { return nil }
-        let lines = LRCParser.parse(lrc)
-        guard !lines.isEmpty else { return nil }
-        try? lrc.write(to: file, atomically: true, encoding: .utf8)
-        return lines
+        // 中文歌先查 QQ音乐，其他先查 LRCLIB
+        let sources: [(name: String, fetch: (TrackInfo) async -> String?)] = track.looksChinese
+            ? [("QQ音乐", qqMusic.fetchSynced), ("LRCLIB", lrclib.fetchSynced)]
+            : [("LRCLIB", lrclib.fetchSynced), ("QQ音乐", qqMusic.fetchSynced)]
+        for source in sources {
+            guard let lrc = await source.fetch(track) else {
+                Log.info("\(source.name)：没有找到歌词")
+                continue
+            }
+            let lines = LRCParser.parse(lrc)
+            guard lines.count > 1 else {
+                Log.info("\(source.name)：歌词没有时间轴")
+                continue
+            }
+            Log.info("歌词来源：\(source.name)")
+            try? lrc.write(to: file, atomically: true, encoding: .utf8)
+            return lines
+        }
+        return nil
     }
 
     private func cacheFile(for track: TrackInfo) -> URL {

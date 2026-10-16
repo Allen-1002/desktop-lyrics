@@ -1,5 +1,6 @@
 import AppKit
 import QuartzCore
+import ServiceManagement
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -193,6 +194,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleHidden() { userHidden.toggle() }
 
+    /// 登录 macOS 时自动打开。只有装在“应用程序”文件夹里的正式版才能注册。
+    @objc private func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+            }
+        } catch {
+            Log.info("设置开机自启失败：\(error.localizedDescription)")
+            let alert = NSAlert()
+            alert.messageText = "没能设置开机自启"
+            alert.informativeText = "请先用 ./scripts/install.sh 把桌面歌词装进“应用程序”文件夹，再从那里打开。\n\n\(error.localizedDescription)"
+            alert.runModal()
+        }
+    }
+
     // MARK: - 样式设置
 
     @objc private func settingsChanged() { panel.redraw() }
@@ -312,6 +331,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         let hide = menu.addItem(action: "隐藏歌词", #selector(toggleHidden), target: self, enabled: true)
         hide.state = userHidden ? .on : .off
+        let login = menu.addItem(action: "登录时自动打开", #selector(toggleLaunchAtLogin), target: self, enabled: true)
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         if !MenuBarLayout.isTrusted {
             menu.addItem(action: "开启辅助功能权限（让歌词紧跟菜单）…", #selector(openAccessibilitySettings), target: self, enabled: true)
         }

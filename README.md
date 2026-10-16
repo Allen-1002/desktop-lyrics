@@ -10,12 +10,22 @@
 - 苹果命令行工具（不需要 Xcode）：在终端运行 `xcode-select --install`
 - 建议在“系统设置 > 控制中心 > 自动隐藏和显示菜单栏”里选“永不”，这样全屏应用里也能看到歌词
 
-## 编译和运行
+## 安装
 
 ```bash
 git clone https://github.com/Allen-1002/desktop-lyrics.git
 cd desktop-lyrics
-./scripts/setup-signing.sh   # 只需第一次运行，会要求输入登录密码
+./scripts/install.sh
+```
+
+会编译并装到“应用程序”文件夹，名字叫“桌面歌词”，之后可以从启动台或聚焦搜索打开。第一次安装会要求输入登录密码（用来创建签名证书）。在 ♪ 菜单里勾选“登录时自动打开”，开机后就会自己启动。
+
+更新：`cd desktop-lyrics && git pull && ./scripts/install.sh`
+
+只想编译不安装：
+
+```bash
+./scripts/setup-signing.sh   # 只需第一次运行
 ./scripts/build-app.sh
 open build/DesktopLyrics.app
 ```
@@ -49,6 +59,7 @@ open build/DesktopLyrics.app
 - **文字颜色**：跟随系统、几种预设颜色，或自定义任意颜色
 - **背景**：无 / 深色底 / 浅色底，壁纸花哨时加一层半透明底更清楚
 - **隐藏歌词**
+- **登录时自动打开**（需要先用 install.sh 安装）
 - **退出**
 
 暂停 3 秒后歌词会自动隐藏；没找到歌词时显示歌名和歌手。

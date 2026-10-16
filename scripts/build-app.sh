@@ -15,6 +15,14 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 # 读取系统“正在播放”信息的组件（QQ音乐、浏览器等），由 /usr/bin/perl 加载
 cp "$BIN_DIR/libNowPlayingHelper.dylib" "$APP/Contents/Resources/"
 cp Resources/now-playing.pl "$APP/Contents/Resources/"
+# 应用图标：从 Resources/AppIcon.png 生成各种尺寸
+ICONSET="build/AppIcon.iconset"
+rm -rf "$ICONSET" && mkdir -p "$ICONSET"
+for size in 16 32 128 256 512; do
+    sips -z $size $size Resources/AppIcon.png --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+    sips -z $((size * 2)) $((size * 2)) Resources/AppIcon.png --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 # 有本机证书（见 scripts/setup-signing.sh）就用它签名，系统授权在重新编译后仍然有效；
 # 没有就用临时签名，每次重新编译后可能需要重新授权。
 IDENTITY="DesktopLyrics Local Signing"

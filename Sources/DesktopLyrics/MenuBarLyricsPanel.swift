@@ -64,6 +64,10 @@ final class MenuBarLyricsPanel: NSPanel {
         }
     }
 
+    func redraw() {
+        lineView.redraw()
+    }
+
     private func applyAlpha(_ alpha: CGFloat) {
         guard alpha != targetAlpha else { return }
         targetAlpha = alpha
@@ -99,40 +103,75 @@ final class LyricsLineView: NSView {
         needsDisplay = true
     }
 
+    /// 设置变了，立即按新样式重画。
+    func redraw() {
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard !text.isEmpty else { return }
 
-        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+        let settings = LyricsSettings.shared
+        let background = settings.background
+        let font = NSFont.systemFont(ofSize: CGFloat(settings.fontSize), weight: .medium)
+        let textColor: NSColor = {
+            if let color = settings.color { return color }
+            switch background {
+            case .dark: return .white
+            case .light: return .black
+            case .none: return .labelColor
+            }
+        }()
+
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingTail
-        let shadow = NSShadow()
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.25)
-        shadow.shadowBlurRadius = 2
-        shadow.shadowOffset = NSSize(width: 0, height: -0.5)
+        // 没有底色时加一圈与文字反差的阴影，浅色字配黑影、深色字配白影
+        var shadow: NSShadow?
+        if background == .none {
+            let s = NSShadow()
+            s.shadowColor = textColor.perceivedBrightness > 0.5
+                ? NSColor.black.withAlphaComponent(0.6)
+                : NSColor.white.withAlphaComponent(0.7)
+            s.shadowBlurRadius = 3
+            s.shadowOffset = .zero
+            shadow = s
+        }
 
         func attributes(alpha: CGFloat) -> [NSAttributedString.Key: Any] {
-            [
+            var attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
-                .foregroundColor: NSColor.labelColor.withAlphaComponent(alpha),
+                .foregroundColor: textColor.withAlphaComponent(alpha),
                 .paragraphStyle: paragraph,
-                .shadow: shadow,
             ]
+            if let shadow { attrs[.shadow] = shadow }
+            return attrs
         }
 
         let string = text as NSString
         let size = string.size(withAttributes: attributes(alpha: 1))
-        let width = min(ceil(size.width), bounds.width)
-        let rect = NSRect(x: 0, y: (bounds.height - size.height) / 2, width: width, height: size.height)
+        let padding: CGFloat = background == .none ? 0 : 8
+        let textWidth = min(ceil(size.width), max(0, bounds.width - padding * 2))
 
+        if background != .none {
+            let pillHeight = min(bounds.height - 2, size.height + 4)
+            let pill = NSRect(x: 0, y: (bounds.height - pillHeight) / 2, width: textWidth + padding * 2, height: pillHeight)
+            let fill = background == .dark
+                ? NSColor.black.withAlphaComponent(0.55)
+                : NSColor.white.withAlphaComponent(0.8)
+            fill.setFill()
+            NSBezierPath(roundedRect: pill, xRadius: pillHeight / 2, yRadius: pillHeight / 2).fill()
+        }
+
+        let rect = NSRect(x: padding, y: (bounds.height - size.height) / 2, width: textWidth, height: size.height)
         if dimmed {
             string.draw(in: rect, withAttributes: attributes(alpha: 0.6))
             return
         }
 
-        string.draw(in: rect, withAttributes: attributes(alpha: 0.4))
+        string.draw(in: rect, withAttributes: attributes(alpha: 0.45))
         guard progress > 0 else { return }
         NSGraphicsContext.saveGraphicsState()
-        NSBezierPath(rect: NSRect(x: 0, y: 0, width: width * CGFloat(progress), height: bounds.height)).addClip()
+        NSBezierPath(rect: NSRect(x: padding, y: 0, width: textWidth * CGFloat(progress), height: bounds.height)).addClip()
         string.draw(in: rect, withAttributes: attributes(alpha: 1))
         NSGraphicsContext.restoreGraphicsState()
     }

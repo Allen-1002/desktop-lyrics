@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let clock = PlaybackClock()
     private let store = LyricsStore()
     private let panel = MenuBarLyricsPanel()
+    private let settings = LyricsSettings.shared
     private var statusItem: NSStatusItem?
 
     private var currentTrack: TrackInfo?
@@ -41,6 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         NotificationCenter.default.addObserver(
             self, selector: #selector(relayout), name: NSApplication.didChangeScreenParametersNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(settingsChanged), name: LyricsSettings.didChange, object: nil
         )
 
         schedule(every: 0.5, #selector(poll))
@@ -171,6 +175,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleHidden() { userHidden.toggle() }
 
+    // MARK: - 样式设置
+
+    @objc private func settingsChanged() { panel.redraw() }
+
+    @objc private func setFontSize(_ sender: NSMenuItem) {
+        guard let size = sender.representedObject as? Double else { return }
+        settings.fontSize = size
+    }
+
+    @objc private func setColorPreset(_ sender: NSMenuItem) {
+        let hex = sender.representedObject as? String
+        settings.colorHex = (hex?.isEmpty ?? true) ? nil : hex
+    }
+
+    @objc private func chooseCustomColor() {
+        let colorPanel = NSColorPanel.shared
+        colorPanel.showsAlpha = false
+        colorPanel.color = settings.color ?? .white
+        colorPanel.setTarget(self)
+        colorPanel.setAction(#selector(colorPanelChanged(_:)))
+        NSApp.activate(ignoringOtherApps: true)
+        colorPanel.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func colorPanelChanged(_ sender: NSColorPanel) {
+        settings.colorHex = sender.color.hexString
+    }
+
+    @objc private func setBackground(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let value = LyricsBackground(rawValue: raw) else { return }
+        settings.background = value
+    }
+
+    private func styleMenu() -> [NSMenuItem] {
+        let sizeMenu = NSMenu()
+        for option in LyricsSettings.fontSizes {
+            let item = sizeMenu.addItem(action: option.title, #selector(setFontSize(_:)), target: self, enabled: true)
+            item.representedObject = option.size
+            item.state = abs(settings.fontSize - option.size) < 0.1 ? .on : .off
+        }
+
+        let colorMenu = NSMenu()
+        var matchedPreset = false
+        for preset in LyricsSettings.colorPresets {
+            let item = colorMenu.addItem(action: preset.title, #selector(setColorPreset(_:)), target: self, enabled: true)
+            item.representedObject = preset.hex ?? ""
+            let selected = preset.hex?.uppercased() == settings.colorHex?.uppercased()
+            item.state = selected ? .on : .off
+            matchedPreset = matchedPreset || selected
+        }
+        colorMenu.addItem(.separator())
+        let custom = colorMenu.addItem(action: "自定义颜色…", #selector(chooseCustomColor), target: self, enabled: true)
+        custom.state = matchedPreset ? .off : .on
+
+        let backgroundMenu = NSMenu()
+        for option in LyricsBackground.allCases {
+            let item = backgroundMenu.addItem(action: option.title, #selector(setBackground(_:)), target: self, enabled: true)
+            item.representedObject = option.rawValue
+            item.state = settings.background == option ? .on : .off
+        }
+
+        let groups: [(String, NSMenu)] = [("字号", sizeMenu), ("文字颜色", colorMenu), ("背景", backgroundMenu)]
+        return groups.map { group in
+            let item = NSMenuItem(title: group.0, action: nil, keyEquivalent: "")
+            item.submenu = group.1
+            return item
+        }
+    }
+
     @objc private func openAccessibilitySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
@@ -212,6 +285,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(action: "歌词延后 0.5 秒", #selector(lyricsLater), target: self, enabled: hasTrack)
         menu.addItem(action: "重置偏移", #selector(resetOffset), target: self, enabled: hasTrack)
         menu.addItem(action: "重新获取歌词", #selector(refetchLyrics), target: self, enabled: hasTrack)
+
+        menu.addItem(.separator())
+        for item in styleMenu() {
+            menu.addItem(item)
+        }
 
         menu.addItem(.separator())
         let hide = menu.addItem(action: "隐藏歌词", #selector(toggleHidden), target: self, enabled: true)

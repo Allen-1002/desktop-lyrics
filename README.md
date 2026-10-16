@@ -22,6 +22,8 @@ cd desktop-lyrics
 
 更新：`cd desktop-lyrics && git pull && ./scripts/install.sh`
 
+封装成 dmg 安装包：`./scripts/make-dmg.sh`，生成 `build/桌面歌词-<版本>.dmg`，打开后把“桌面歌词”拖进“应用程序”。这个安装包用本机证书签名，在别的 Mac 上第一次打开要右键选“打开”。
+
 只想编译不安装：
 
 ```bash

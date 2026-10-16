@@ -27,6 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pausedSince: CFTimeInterval?
     private var userHidden = false
     private var lastOtherApp: NSRunningApplication?
+    /// 最近一次从系统“正在播放”读到的音乐 App（QQ音乐等）状态
+    private var lastMusicAppReading: (reading: SystemNowPlayingSource.Reading, receivedAt: CFTimeInterval)?
     private var timers: [Timer] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -70,13 +72,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - 播放状态
 
     /// Apple Music 用 AppleScript 读（进度最准）；其他播放器（QQ音乐、浏览器等）用系统“正在播放”信息。
+    ///
+    /// 系统“正在播放”同一时间只有一个应用，浏览器里一放视频就会被它抢走。
+    /// 所以音乐 App 在放歌时优先跟随音乐 App，没有音乐 App 在放时才跟随浏览器（比如飞牛音乐）。
     private func currentSnapshot() -> PlaybackSnapshot? {
-        if let system = systemNowPlaying.current(),
-           system.bundleID != SourceApps.appleMusic,
-           system.snapshot.track != nil {
+        let appleMusic = music.poll()
+        if appleMusic?.isPlaying == true {
+            return appleMusic
+        }
+
+        let system = systemNowPlaying.current()
+        if let system, system.bundleID != SourceApps.appleMusic, SourceApps.musicApps.contains(system.bundleID) {
+            lastMusicAppReading = system.snapshot.track == nil ? nil : (system, CACurrentMediaTime())
+            if system.snapshot.track != nil {
+                return system.snapshot
+            }
+        } else if let remembered = rememberedMusicAppSnapshot() {
+            return remembered
+        }
+
+        if let system, system.bundleID != SourceApps.appleMusic, system.snapshot.track != nil {
             return system.snapshot
         }
-        return music.poll()
+        return appleMusic
+    }
+
+    /// “正在播放”被浏览器等抢走后，如果之前的音乐 App 还在出声，就按最后一次读到的进度接着往后推。
+    private func rememberedMusicAppSnapshot() -> PlaybackSnapshot? {
+        guard let remembered = lastMusicAppReading,
+              let track = remembered.reading.snapshot.track,
+              remembered.reading.snapshot.isPlaying,
+              isStillPlaying(remembered.reading.bundleID) else {
+            lastMusicAppReading = nil
+            return nil
+        }
+        let position = remembered.reading.snapshot.position + (CACurrentMediaTime() - remembered.receivedAt)
+        // 音乐 App 已经放到下一首了，但读不到是哪首，先不显示，也不改去显示浏览器的内容
+        if track.duration > 0, position > track.duration {
+            return .stopped
+        }
+        return PlaybackSnapshot(track: track, position: position, isPlaying: true)
+    }
+
+    private func isStillPlaying(_ bundleID: String) -> Bool {
+        if let outputting = AudioActivity.isOutputting(bundleID: bundleID) {
+            return outputting
+        }
+        // 系统太旧，判断不了有没有声音，只要还开着就当作在放
+        return !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
     }
 
     @objc private func poll() {

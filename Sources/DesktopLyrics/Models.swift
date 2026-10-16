@@ -38,8 +38,11 @@ enum SourceApps {
     static let appleMusic = "com.apple.Music"
     static let qqMusic = "com.tencent.QQMusicMac"
 
+    /// 音乐 App：同时有浏览器在放视频时，优先跟随它们。
+    static let musicApps: Set<String> = [appleMusic, qqMusic]
+
     /// 只为这些应用显示“歌名 - 歌手”占位；其他来源（比如浏览器里的视频）没找到歌词时就不显示。
-    static let showsTitleWithoutLyrics: Set<String> = [appleMusic, qqMusic]
+    static let showsTitleWithoutLyrics = musicApps
 }
 
 /// 播放器某一刻的状态。

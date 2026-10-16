@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.allen1002.desktoplyrics</string>
+    <key>CFBundleName</key>
+    <string>DesktopLyrics</string>
+    <key>CFBundleDisplayName</key>
+    <string>桌面歌词</string>
+    <key>CFBundleExecutable</key>
+    <string>DesktopLyrics</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>桌面歌词需要读取“音乐”App 正在播放的歌曲和播放进度，用来同步显示歌词。</string>
+</dict>
+</plist>

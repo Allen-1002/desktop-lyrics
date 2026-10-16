@@ -7,11 +7,11 @@ final class AppleMusicSource {
 
     private let script = NSAppleScript(source: """
     tell application id "com.apple.Music"
-        set st to (player state as text)
-        if st is "stopped" then return "stopped"
-        set t to current track
-        set sep to (character id 31)
-        return st & sep & (name of t) & sep & (artist of t) & sep & (album of t) & sep & ((duration of t) as text) & sep & ((player position) as text)
+        set playerStateText to (player state as text)
+        if playerStateText is "stopped" then return "stopped"
+        set theTrack to current track
+        set fieldSeparator to (character id 31)
+        return playerStateText & fieldSeparator & (name of theTrack) & fieldSeparator & (artist of theTrack) & fieldSeparator & (album of theTrack) & fieldSeparator & ((duration of theTrack) as text) & fieldSeparator & ((player position) as text)
     end tell
     """)
 
